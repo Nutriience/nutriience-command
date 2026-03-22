@@ -3425,49 +3425,10 @@ function PDFImporter({ d, onSave, onClose }) {
         r.readAsArrayBuffer(file);
       });
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/pdf-extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: [
-              {
-                type: "document",
-                source: { type: "base64", media_type: "application/pdf", data: base64 }
-              },
-              {
-                type: "text",
-                text: `You are extracting financial data from a bookkeeper monthly report for ${reportMonth}. Extract ONLY these specific numbers from the ACCRUAL BASIS section of the report. Return ONLY valid JSON, no explanation, no markdown:
-
-{
-  "accrual_revenue_mtd": <number or null>,
-  "accrual_gp_mtd": <number or null>,
-  "accrual_gm_pct_mtd": <number or null>,
-  "accrual_net_income": <number or null>,
-  "cash_revenue_mtd": <number or null>,
-  "cash_gp_mtd": <number or null>,
-  "cash_gm_pct_mtd": <number or null>,
-  "cash_net_income": <number or null>,
-  "cash_balance_total": <number or null>,
-  "ar_total_open": <number or null>,
-  "ar_past_due": <number or null>,
-  "ap_total": <number or null>,
-  "owner_comp_ytd": <number or null>,
-  "distributions_ytd": <number or null>,
-  "overhead_monthly": <number or null>,
-  "payroll_monthly": <number or null>,
-  "confidence": "high|medium|low",
-  "notes": "<any caveats about extraction quality>"
-}
-
-If a value is not found or unclear, use null. All monetary values should be plain numbers without $ or commas.`
-              }
-            ]
-          }]
-        })
+        body: JSON.stringify({ base64, reportMonth })
       });
 
       const data = await response.json();
