@@ -3404,20 +3404,25 @@ function PDFImporter({ d, onSave, onClose }) {
     setStage("processing");
     setError(null);
     try {
+      // Use ArrayBuffer + manual base64 encoding -- more reliable than readAsDataURL
       const base64 = await new Promise((res, rej) => {
         const r = new FileReader();
         r.onload = () => {
-          const result = r.result;
-          if (typeof result === "string" && result.includes(",")) {
-            res(result.split(",")[1]);
-          } else if (typeof result === "string") {
-            res(result);
-          } else {
-            rej(new Error("Could not read file as base64"));
+          try {
+            const bytes = new Uint8Array(r.result);
+            let binary = "";
+            const chunkSize = 8192;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+              const chunk = bytes.subarray(i, i + chunkSize);
+              binary += String.fromCharCode.apply(null, chunk);
+            }
+            res(btoa(binary));
+          } catch (err) {
+            rej(new Error("Base64 encoding failed: " + err.message));
           }
         };
-        r.onerror = () => rej(new Error("Read failed"));
-        r.readAsDataURL(file);
+        r.onerror = () => rej(new Error("File read failed -- check the file is not corrupted"));
+        r.readAsArrayBuffer(file);
       });
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -3479,7 +3484,7 @@ If a value is not found or unclear, use null. All monetary values should be plai
       setAccepted(defaults);
       setStage("review");
     } catch (e) {
-      setError(`Oh shit. Extraction failed: ${e.message}. Try clicking to browse instead of drag and drop.`);
+      setError(`Oh shit. Extraction failed: ${e.message}. Try using the click to browse button rather than drag and drop.`);
       setStage("drop");
     }
   };
