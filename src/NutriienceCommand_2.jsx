@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── PIN CONFIG ──────────────────────────────────────────────────────────────
 // Change this to your preferred 4-digit PIN
-const APP_PIN = "7493";
+const APP_PIN = "1234";
 const PIN_SESSION_KEY = "nutriience_pin_session";
 
 // ─── PERSISTENT STORAGE ─────────────────────────────────────────────────────
@@ -1512,7 +1512,7 @@ function CashCommand({ d }) {
         <Tile label="Total Cash" value={fmt(totalCash)} color={totalCash >= g.cashReserveTarget ? "green" : "red"} />
         <Tile label="Reserve Floor" value={fmt(g.cashReserveTarget)} sub={totalCash >= g.cashReserveTarget ? "Met" : "Below target"} color={totalCash >= g.cashReserveTarget ? "green" : "red"} />
         <Tile label="Safe to Distribute" value={fmt(safeToDistribute)} sub="After reserve + A/P + buffer" color={safeToDistribute > 0 ? "green" : "red"} />
-        <Tile label="Oh-No Fund" value={fmt(d.cash.ohNoProgress)} sub={`Target: ${fmt(g.ohNoFundTarget)}`} color={d.cash.ohNoProgress >= g.ohNoFundTarget ? "green" : "yellow"} />
+        <Tile label="Oh-Shit Fund" value={fmt(d.cash.ohNoProgress)} sub={`Target: ${fmt(g.ohNoFundTarget)}`} color={d.cash.ohNoProgress >= g.ohNoFundTarget ? "green" : "yellow"} />
       </div>
       <div className="card">
         <div className="card-title">Cash by Account</div>
@@ -1976,7 +1976,7 @@ function DistributionSnapshot({ d }) {
         </div>
         <div className="dist-meter">
           <div className="dist-val">{fmt(d.cash.ohNoProgress)}</div>
-          <div className="dist-label">Oh-No Fund</div>
+          <div className="dist-label">Oh-Shit Fund</div>
           <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 6, fontFamily: "DM Mono,monospace" }}>Target: {fmt(g.ohNoFundTarget)} · {pct(d.cash.ohNoProgress / g.ohNoFundTarget * 100)} funded</div>
         </div>
       </div>
@@ -2313,7 +2313,7 @@ function AdminPanel({ d, onSave, onClose }) {
                   <F label={`${a.name} — Balance`} path={`cash.accounts.${i}.balance`} />
                 </div>
               ))}
-              <F label="Oh-No Fund Progress" path="cash.ohNoProgress" />
+              <F label="Oh-Shit Fund Progress" path="cash.ohNoProgress" />
               <div className="fsection">A/R</div>
               <F label="A/R Due This Week" path="ar.dueThisWeek" />
               {draft.ar.aging.map((r, i) => <F key={i} label={`A/R — ${r.bucket}`} path={`ar.aging.${i}.amount`} />)}
@@ -2414,7 +2414,7 @@ function AdminPanel({ d, onSave, onClose }) {
               <div className="fsection">Cash Policy</div>
               <div className="fg2">
                 <F label="Cash Reserve Target" path="settings.guardrails.cashReserveTarget" />
-                <F label="Oh-No Fund Target" path="settings.guardrails.ohNoFundTarget" />
+                <F label="Oh-Shit Fund Target" path="settings.guardrails.ohNoFundTarget" />
               </div>
               <div className="fsection">Approval Thresholds</div>
               <div className="fg2">
@@ -3406,7 +3406,16 @@ function PDFImporter({ d, onSave, onClose }) {
     try {
       const base64 = await new Promise((res, rej) => {
         const r = new FileReader();
-        r.onload = () => res(r.result.split(",")[1]);
+        r.onload = () => {
+          const result = r.result;
+          if (typeof result === "string" && result.includes(",")) {
+            res(result.split(",")[1]);
+          } else if (typeof result === "string") {
+            res(result);
+          } else {
+            rej(new Error("Could not read file as base64"));
+          }
+        };
         r.onerror = () => rej(new Error("Read failed"));
         r.readAsDataURL(file);
       });
@@ -3470,7 +3479,7 @@ If a value is not found or unclear, use null. All monetary values should be plai
       setAccepted(defaults);
       setStage("review");
     } catch (e) {
-      setError(`Extraction failed: ${e.message}. Try a digital PDF rather than a scanned image.`);
+      setError(`Oh shit. Extraction failed: ${e.message}. Try clicking to browse instead of drag and drop.`);
       setStage("drop");
     }
   };
@@ -3478,7 +3487,8 @@ If a value is not found or unclear, use null. All monetary values should be plai
   const handleDrop = (e) => {
     e.preventDefault(); setDrag(false);
     const file = e.dataTransfer.files[0];
-    if (file?.type === "application/pdf") extractPDF(file);
+    if (file && (file.type === "application/pdf" || file.name?.toLowerCase().endsWith(".pdf"))) extractPDF(file);
+    else setError("Oh shit. That doesn't look like a PDF. Try clicking to browse instead.");
   };
 
   const handleFile = (e) => {
