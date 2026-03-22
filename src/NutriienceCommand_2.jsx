@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── PIN CONFIG ──────────────────────────────────────────────────────────────
 // Change this to your preferred 4-digit PIN
-const APP_PIN = "7493";
+const APP_PIN = "1234";
 const PIN_SESSION_KEY = "nutriience_pin_session";
 
 // ─── PERSISTENT STORAGE ─────────────────────────────────────────────────────
@@ -3395,7 +3395,7 @@ function PDFImporter({ d, onSave, onClose }) {
   const [accepted, setAccepted] = useState({});
   const [error, setError] = useState(null);
 
-  const months = Array.from({ length: 12 }, (_, i) => {
+  const months = Array.from({ length: 36 }, (_, i) => {
     const d = new Date(); d.setMonth(d.getMonth() - i);
     return d.toISOString().slice(0, 7);
   });
