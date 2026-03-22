@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── PIN CONFIG ──────────────────────────────────────────────────────────────
 // Change this to your preferred 4-digit PIN
-const APP_PIN = "1234";
+const APP_PIN = "7493";
 const PIN_SESSION_KEY = "nutriience_pin_session";
 
 // ─── PERSISTENT STORAGE ─────────────────────────────────────────────────────
