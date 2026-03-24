@@ -34,7 +34,7 @@ const DEFAULT_DATA = {
   settings: {
     companyName: "Nutriience",
     fiscalYearStart: "2025-01-01",
-    employees: 8,
+    employees: 3,
     team: ["Owner", "Mari", "Gina"],
     commissionProfiles: [
       { name: "Gina", rate: 18, drawAnnual: 80000, drawPeriod: "quarterly", compType: "Commission", active: true },
@@ -43,7 +43,11 @@ const DEFAULT_DATA = {
     guardrails: {
       minGM_manufacturing: 13, minGM_rawMaterial: 16, minGM_npd: 16,
       minGPPerAccount: 40000, maxCustomerConcentration: 30,
-      empeTarget: 62000, revenuePerHeadTarget: 280000,
+      empeFloor: 200000, empeStrong: 350000, empeElite: 500000,
+      empeTarget: 200000,
+      revPerHeadFloor: 1500000, revPerHeadStrong: 2500000, revPerHeadElite: 4000000,
+      revenuePerHeadTarget: 1500000,
+      gmBlendedFloor: 13, gmBlendedStrong: 16, gmBlendedElite: 18,
       cashReserveTarget: 150000, ohNoFundTarget: 75000,
       distributionApprovalThreshold: 20000, marginExceptionThreshold: 5,
     },
@@ -1268,6 +1272,36 @@ function FlashFinancials({ d }) {
 }
 
 // ─── MODULE: CUSTOMERS ────────────────────────────────────────────────────────
+// ─── CUSTOMER SCORING MODEL ──────────────────────────────────────────────────
+function calcCustomerScore(c) {
+  // A. GP$ Score (40 pts) -- auto from data
+  const gp = c.gp_ytd || 0;
+  const gpScore = gp >= 200000 ? 40 : gp >= 125000 ? 30 : gp >= 75000 ? 20 : gp >= 40000 ? 10 : 0;
+
+  // B. SKU Power (20 pts) -- manual input
+  const skuScore = c.scoreSKUPower ?? 10;
+
+  // C. Order Behavior (15 pts) -- manual input
+  const orderScore = c.scoreOrderBehavior ?? 5;
+
+  // D. Operational Simplicity (15 pts) -- manual input
+  const opsScore = c.scoreOpSimplicity ?? 10;
+
+  // E. Growth Potential (10 pts) -- manual input
+  const growthScore = c.scoreGrowthPotential ?? 5;
+
+  const total = gpScore + skuScore + orderScore + opsScore + growthScore;
+
+  const tier = total >= 85 ? "A" : total >= 65 ? "B" : total >= 40 ? "C" : "D";
+  const strategy = tier === "A" ? "protect" : tier === "B" ? "force" : tier === "C" ? "optimize" : "exit";
+  const action = tier === "A" ? "Protect & Expand" : tier === "B" ? "Force a Decision" : tier === "C" ? "Optimize or Starve" : "Fix or Exit";
+
+  return { total, gpScore, skuScore, orderScore, opsScore, growthScore, tier, strategy, action };
+}
+
+const SCORE_TIER_COLORS = { A: "var(--green)", B: "var(--accent)", C: "var(--yellow)", D: "var(--red)" };
+const SCORE_TIER_BG = { A: "rgba(0,212,160,.15)", B: "rgba(24,120,168,.15)", C: "rgba(255,201,71,.15)", D: "rgba(220,38,38,.15)" };
+
 function CustomerScoreboard({ d, onSave }) {
   const [sel, setSel] = useState(null);
   const [snapshot, setSnapshot] = useState(null);
@@ -1318,6 +1352,7 @@ function CustomerScoreboard({ d, onSave }) {
             </tr></thead>
             <tbody>{d.customers.map(c => {
               const traj = computeTrajectoryStatus(c, g);
+              const score = calcCustomerScore(c);
               return (
                 <tr key={c.id} className="clickable" onClick={() => setSel(sel?.id === c.id ? null : c)}>
                   <td style={{ fontWeight: 600, color: "var(--text)" }}>{c.name}</td>
@@ -1336,9 +1371,9 @@ function CustomerScoreboard({ d, onSave }) {
                   <td className="mono">{fmt(c.arOpen)}</td>
                   <td className="mono" style={{ color: c.arPastDue > 0 ? "var(--red)" : "var(--text3)" }}>{c.arPastDue > 0 ? fmt(c.arPastDue) : "—"}</td>
                   <td className="mono" style={{ color: c.openIssues > 2 ? "var(--red)" : c.openIssues > 0 ? "var(--yellow)" : "var(--green)" }}>{c.openIssues}</td>
-                  <td><span className={`tag tag-${c.tier.toLowerCase()}`}>{c.tier}</span></td>
-                  <td><span className="chip" style={{ background: STRATEGY_COLORS[c.strategy] + "22", color: STRATEGY_COLORS[c.strategy] }}>{c.strategy.toUpperCase()}</span></td>
-                  <td style={{ fontSize: 11, color: "var(--text3)" }}>{OPERATOR_LABELS[c.operatorScore] || c.operatorScore}</td>
+                  <td><span style={{ fontSize: 11, fontWeight: 800, background: SCORE_TIER_BG[score.tier], color: SCORE_TIER_COLORS[score.tier], padding: "2px 8px", borderRadius: 4, fontFamily: "DM Mono,monospace" }}>{score.tier}</span></td>
+                  <td><span style={{ fontSize: 10, fontWeight: 700, color: SCORE_TIER_COLORS[score.tier] }}>{score.action}</span></td>
+                  <td><span style={{ fontSize: 12, fontWeight: 800, fontFamily: "DM Mono,monospace", color: SCORE_TIER_COLORS[score.tier] }}>{score.total}</span><span style={{ fontSize: 9, color: "var(--text3)" }}>/100</span></td>
                 </tr>
               );
             })}</tbody>
@@ -1349,6 +1384,7 @@ function CustomerScoreboard({ d, onSave }) {
         const traj = computeTrajectoryStatus(sel, g);
         const snapshots = sel.monthlySnapshots || [];
         const tenureMonths = sel.tenureStartDate ? Math.floor((new Date() - new Date(sel.tenureStartDate)) / (1000 * 60 * 60 * 24 * 30)) : 0;
+        const score = calcCustomerScore(sel);
         return (
           <div className="card" style={{ borderColor: traj.status === "red" ? "rgba(255,71,87,.3)" : traj.status === "yellow" ? "rgba(255,201,71,.3)" : "rgba(0,212,160,.3)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
@@ -1373,6 +1409,35 @@ function CustomerScoreboard({ d, onSave }) {
                   </div>
                   <div style={{ fontSize: 10, color: "var(--text3)", fontFamily: "DM Mono,monospace", marginTop: 2 }}>{traj.detail}</div>
                 </div>
+              </div>
+            </div>
+
+            {/* Nutriience Score Card */}
+            <div style={{ background: SCORE_TIER_BG[score.tier], border: `1px solid ${SCORE_TIER_COLORS[score.tier]}44`, borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Nutriience Score</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: SCORE_TIER_COLORS[score.tier], fontFamily: "DM Mono,monospace", lineHeight: 1.1 }}>{score.total}<span style={{ fontSize: 13, color: "var(--text3)" }}>/100</span></div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: SCORE_TIER_COLORS[score.tier], fontFamily: "DM Mono,monospace" }}>Tier {score.tier}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: SCORE_TIER_COLORS[score.tier], marginTop: 2 }}>{score.action}</div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+                {[
+                  ["GP$", score.gpScore, 40, "Auto"],
+                  ["SKU Power", score.skuScore, 20, "Manual"],
+                  ["Order Behavior", score.orderScore, 15, "Manual"],
+                  ["Ops Simplicity", score.opsScore, 15, "Manual"],
+                  ["Growth Potential", score.growthScore, 10, "Manual"],
+                ].map(([label, val, max, src]) => (
+                  <div key={label} style={{ background: "var(--surface)", borderRadius: 6, padding: "6px 8px", textAlign: "center", border: "1px solid var(--border2)" }}>
+                    <div style={{ fontSize: 9, color: "var(--text3)", textTransform: "uppercase", fontWeight: 700, marginBottom: 2 }}>{label}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, fontFamily: "DM Mono,monospace", color: val >= max * 0.75 ? "var(--green)" : val >= max * 0.4 ? "var(--yellow)" : "var(--red)" }}>{val}</div>
+                    <div style={{ fontSize: 8, color: "var(--text3)" }}>of {max} · {src}</div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1550,42 +1615,131 @@ function CashCommand({ d }) {
 }
 
 // ─── MODULE: GUARDRAILS ───────────────────────────────────────────────────────
+function TierCard({ label, value, floor, strong, elite, format = "currency", isLower = false }) {
+  // isLower = true means lower is better (like concentration)
+  const fmtVal = v => format === "pct" ? `${v}%` : format === "currency" ? fmt(v) : v;
+  const pos = isLower
+    ? value <= floor ? "elite" : value <= strong ? "strong" : value <= elite ? "floor" : "breach"
+    : value >= elite ? "elite" : value >= strong ? "strong" : value >= floor ? "floor" : "below";
+
+  const tierColor = { elite: "var(--green)", strong: "var(--accent)", floor: "var(--yellow)", below: "var(--yellow)", breach: "var(--red)" };
+  const tierLabel = { elite: "ELITE", strong: "STRONG", floor: "ABOVE FLOOR", below: "BUILDING", breach: "BREACH" };
+  const isBreach = pos === "breach";
+
+  // Calculate % progress through current tier for the bar
+  const pctBar = isLower ? 0 : Math.min(100, value <= 0 ? 0 : value >= elite ? 100 : value >= strong ? 66 + ((value - strong) / (elite - strong)) * 34 : value >= floor ? 33 + ((value - floor) / (strong - floor)) * 33 : Math.max(0, (value / floor) * 33));
+
+  return (
+    <div style={{ background: "var(--surface2)", borderRadius: 10, padding: "14px 16px", border: `1px solid ${isBreach ? "var(--red)" : "var(--border)"}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text3)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: tierColor[pos], fontFamily: "DM Mono, monospace" }}>{fmtVal(value)}</div>
+        </div>
+        <div style={{ background: tierColor[pos], color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", marginTop: 4 }}>{tierLabel[pos]}</div>
+      </div>
+      {!isLower && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ height: 6, background: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${pctBar}%`, background: tierColor[pos], borderRadius: 3, transition: "width 0.4s ease" }} />
+          </div>
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
+        {[["Floor", floor], ["Strong", strong], ["Elite", elite]].map(([t, v]) => (
+          <div key={t} style={{ textAlign: "center", padding: "6px 4px", background: "var(--surface)", borderRadius: 6, border: "1px solid var(--border2)" }}>
+            <div style={{ fontSize: 9, color: "var(--text3)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{t}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text2)", fontFamily: "DM Mono, monospace" }}>{fmtVal(v)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function GuardrailsTab({ d }) {
   const g = d.settings.guardrails;
   const f = d.financials;
-  const empe = f.gp.ytd / d.settings.employees;
-  const revPerHead = f.revenue.ytd / d.settings.employees;
+  const empe = f.gp.ytd / (d.settings.employees || 3);
+  const revPerHead = f.revenue.ytd / (d.settings.employees || 3);
   const totalCash = d.cash.accounts.reduce((s, a) => s + a.balance, 0);
+  const blendedGM = f.gm.mtd || 0;
+  const topConc = Math.max(...(d.customers.map(c => c.concentration || 0)), 0);
 
-  const rules = [
-    { name: "GM% Floor — Manufacturing Mgmt", detail: `Floor ${pct(g.minGM_manufacturing)} · Actual ${pct(f.serviceLines[0].gm)}`, pass: f.serviceLines[0].gm >= g.minGM_manufacturing, warn: f.serviceLines[0].gm >= g.minGM_manufacturing * 0.95 },
-    { name: "GM% Floor — Raw Material Supply", detail: `Floor ${pct(g.minGM_rawMaterial)} · Actual ${pct(f.serviceLines[1].gm)}`, pass: f.serviceLines[1].gm >= g.minGM_rawMaterial, warn: false },
-    { name: "GM% Floor — NPD / Projects", detail: `Floor ${pct(g.minGM_npd)} · Actual ${pct(f.serviceLines[2].gm)}`, pass: f.serviceLines[2].gm >= g.minGM_npd, warn: false },
-    { name: "EMPE Target", detail: `Target ${fmt(g.empeTarget)} · Actual ${fmt(empe)}`, pass: empe >= g.empeTarget, warn: empe >= g.empeTarget * 0.9 },
-    { name: "Revenue per Headcount", detail: `Target ${fmt(g.revenuePerHeadTarget)} · Actual ${fmt(revPerHead)}`, pass: revPerHead >= g.revenuePerHeadTarget, warn: revPerHead >= g.revenuePerHeadTarget * 0.9 },
-    { name: "Cash Reserve Floor", detail: `Floor ${fmt(g.cashReserveTarget)} · Actual ${fmt(totalCash)}`, pass: totalCash >= g.cashReserveTarget, warn: totalCash >= g.cashReserveTarget * 0.85 },
-    { name: "Max Customer Concentration", detail: `Cap ${pct(g.maxCustomerConcentration)} · Top account ${pct(d.customers[0]?.concentration || 0)}`, pass: (d.customers[0]?.concentration || 0) < g.maxCustomerConcentration, warn: (d.customers[0]?.concentration || 0) >= g.maxCustomerConcentration * 0.8 },
+  const gmFloors = [
+    { name: "Manufacturing Mgmt", floor: g.minGM_manufacturing, actual: f.serviceLines[0]?.gm || 0 },
+    { name: "Raw Material Supply", floor: g.minGM_rawMaterial, actual: f.serviceLines[1]?.gm || 0 },
+    { name: "NPD / Projects", floor: g.minGM_npd, actual: f.serviceLines[2]?.gm || 0 },
   ];
 
-  const exceptions = d.customers.filter(c => c.gm < g.minGM_manufacturing).map(c => ({
-    name: c.name, issue: `GM% ${pct(c.gm)} below floor — strategy: ${c.strategy}`, sev: c.gm < g.minGM_manufacturing - 5 ? "red" : "yellow", duration: c.trend,
+  const exceptions = d.customers.filter(c => c.gm > 0 && c.gm < g.minGM_manufacturing).map(c => ({
+    name: c.name, issue: `GM% ${pct(c.gm)} below ${pct(g.minGM_manufacturing)} floor — strategy: ${c.strategy}`, sev: c.gm < g.minGM_manufacturing - 5 ? "red" : "yellow",
   }));
 
   return (
     <div className="gap16">
       <div className="sh"><div className="sh-title">Guardrails</div><div className="sh-sub">Nutriience OS as operating discipline</div></div>
+
       <div className="card">
-        <div className="card-title">Operating Rules</div>
-        <div className="gap8">{rules.map((r, i) => {
-          const s = r.pass ? "pass" : r.warn ? "warn" : "fail";
-          return (
-            <div key={i} className="grail">
-              <div style={{ flex: 1 }}><div className="grail-name">{r.name}</div><div className="grail-detail">{r.detail}</div></div>
-              <div className={`grail-status ${s}`}><span>{r.pass ? "✓" : r.warn ? "!" : "✗"}</span><span>{r.pass ? "PASS" : r.warn ? "WATCH" : "BREACH"}</span></div>
-            </div>
-          );
-        })}</div>
+        <div className="card-title">Performance Tiers</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12, marginTop: 8 }}>
+          <TierCard label="EMPE — Gross Profit / Employee" value={empe}
+            floor={g.empeFloor || 200000} strong={g.empeStrong || 350000} elite={g.empeElite || 500000} format="currency" />
+          <TierCard label="Revenue / Employee" value={revPerHead}
+            floor={g.revPerHeadFloor || 1500000} strong={g.revPerHeadStrong || 2500000} elite={g.revPerHeadElite || 4000000} format="currency" />
+          <TierCard label="Blended GM%" value={blendedGM}
+            floor={g.gmBlendedFloor || 13} strong={g.gmBlendedStrong || 16} elite={g.gmBlendedElite || 18} format="pct" />
+        </div>
       </div>
+
+      <div className="card">
+        <div className="card-title">GM% Hard Floors — Require Approval if Breached</div>
+        <div className="gap8">
+          {gmFloors.map((r, i) => {
+            const pass = r.actual >= r.floor;
+            const noData = r.actual === 0;
+            return (
+              <div key={i} className="grail">
+                <div style={{ flex: 1 }}>
+                  <div className="grail-name">{r.name}</div>
+                  <div className="grail-detail">Floor {pct(r.floor)} · Actual {noData ? "No data this period" : pct(r.actual)}</div>
+                </div>
+                <div className={`grail-status ${noData ? "warn" : pass ? "pass" : "fail"}`}>
+                  <span>{noData ? "—" : pass ? "✓" : "✗"}</span>
+                  <span>{noData ? "NO DATA" : pass ? "PASS" : "BREACH"}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Account Rules</div>
+        <div className="gap8">
+          <div className="grail">
+            <div style={{ flex: 1 }}>
+              <div className="grail-name">Max Customer Concentration</div>
+              <div className="grail-detail">Cap {pct(g.maxCustomerConcentration)} · Top account {pct(topConc)}</div>
+            </div>
+            <div className={`grail-status ${topConc >= g.maxCustomerConcentration ? "fail" : topConc >= g.maxCustomerConcentration * 0.8 ? "warn" : "pass"}`}>
+              <span>{topConc >= g.maxCustomerConcentration ? "✗" : topConc >= g.maxCustomerConcentration * 0.8 ? "!" : "✓"}</span>
+              <span>{topConc >= g.maxCustomerConcentration ? "BREACH" : topConc >= g.maxCustomerConcentration * 0.8 ? "WATCH" : "PASS"}</span>
+            </div>
+          </div>
+          <div className="grail">
+            <div style={{ flex: 1 }}>
+              <div className="grail-name">Cash Reserve</div>
+              <div className="grail-detail">Target {fmt(g.cashReserveTarget)} · Actual {fmt(totalCash)}</div>
+            </div>
+            <div className={`grail-status ${totalCash >= g.cashReserveTarget ? "pass" : totalCash >= g.cashReserveTarget * 0.5 ? "warn" : "fail"}`}>
+              <span>{totalCash >= g.cashReserveTarget ? "✓" : "!"}</span>
+              <span>{totalCash >= g.cashReserveTarget ? "PASS" : totalCash >= g.cashReserveTarget * 0.5 ? "BUILDING" : "BREACH"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {exceptions.length > 0 && (
         <div className="card">
           <div className="card-title">Active Exceptions</div>
@@ -1596,6 +1750,7 @@ function GuardrailsTab({ d }) {
           ))}</div>
         </div>
       )}
+
       <div className="card">
         <div className="card-title">Approval Thresholds</div>
         <div className="g2">
@@ -1603,6 +1758,7 @@ function GuardrailsTab({ d }) {
           <MRow label="Margin exception approval" value={`${g.marginExceptionThreshold} pts below floor`} />
           <MRow label="Min GP$ per account / year" value={fmtFull(g.minGPPerAccount)} />
           <MRow label="NPD rule" value="Tied to account growth only" />
+          <MRow label="Hiring rule" value="New hire must maintain or grow EMPE within 6–12 months" />
         </div>
       </div>
     </div>
@@ -1650,7 +1806,12 @@ function DealEvaluator({ d }) {
     const tier = gpDollars >= 120000 ? "A" : gpDollars >= 60000 ? "B" : "C";
     const verdict = score >= 40 ? "take" : score >= 20 ? "renegotiate" : "decline";
     const recommendedFloor = Math.max(floor, gm < floor ? floor + 3 : gm);
-    setResult({ gpDollars, timeBurden, tier, verdict, flags, score, recommendedFloor, gm, floor });
+    const currentGP = d.financials.gp.ytd;
+    const headcount = d.settings.employees || 3;
+    const currentEMPE = currentGP / headcount;
+    const newEMPE = (currentGP + gpDollars) / headcount;
+    const empeImpact = newEMPE - currentEMPE;
+    setResult({ gpDollars, timeBurden, tier, verdict, flags, score, recommendedFloor, gm, floor, currentEMPE, newEMPE, empeImpact, headcount });
   };
 
   return (
@@ -1678,6 +1839,18 @@ function DealEvaluator({ d }) {
             <div>
               <div className="card-title" style={{ marginBottom: 10 }}>Estimated Output</div>
               {[["Estimated GP$", fmt(result.gpDollars)], ["Time Burden Score", `${result.timeBurden} pts`], ["Projected Account Tier", result.tier], ["Fits Nutriience Model?", result.verdict === "take" ? "Yes" : result.verdict === "renegotiate" ? "With conditions" : "No"], ["Recommended Margin Floor", `${result.recommendedFloor}% minimum`]].map(([l, v]) => <MRow key={l} label={l} value={v} />)}
+              <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--surface2)", borderRadius: 8, border: "1px solid var(--border2)" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>EMPE Impact (Informational)</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                  {[["Current EMPE", fmt(result.currentEMPE)], ["New EMPE", fmt(result.newEMPE)], ["Change", `+${fmt(result.empeImpact)}`]].map(([l, v]) => (
+                    <div key={l} style={{ textAlign: "center" }}>
+                      <div style={{ fontSize: 9, color: "var(--text3)", textTransform: "uppercase", fontWeight: 700, marginBottom: 2 }}>{l}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: l === "Change" ? "var(--green)" : "var(--text)", fontFamily: "DM Mono, monospace" }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 6 }}>Based on {result.headcount} FTE · YTD GP$ + this deal's estimated annual GP$</div>
+              </div>
             </div>
             <div>
               <div className="card-title" style={{ marginBottom: 10 }}>Flags</div>
@@ -2331,8 +2504,42 @@ function AdminPanel({ d, onSave, onClose }) {
                     <div className="field"><label className="flabel">Trend</label>
                       <select className="fselect" value={c.trend} onChange={e => set(`customers.${i}.trend`, e.target.value)}>{["improving", "stable", "deteriorating"].map(s => <option key={s} value={s}>{s}</option>)}</select>
                     </div>
-                    <div className="field"><label className="flabel">Operator Score</label>
-                      <select className="fselect" value={c.operatorScore} onChange={e => set(`customers.${i}.operatorScore`, e.target.value)}>{Object.keys(OPERATOR_LABELS).map(k => <option key={k} value={k}>{OPERATOR_LABELS[k]}</option>)}</select>
+                  </div>
+                  <div style={{ marginTop: 10, padding: "10px 12px", background: "var(--surface)", borderRadius: 8, border: "1px solid var(--border2)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Nutriience Score Inputs · GP$ score is automatic</div>
+                    <div className="fg2">
+                      <div className="field"><label className="flabel">SKU Power (0–20)</label>
+                        <select className="fselect" value={c.scoreSKUPower ?? 10} onChange={e => set(`customers.${i}.scoreSKUPower`, num(e.target.value))}>
+                          <option value={20}>20 — 4+ SKUs, all meaningful</option>
+                          <option value={15}>15 — 2–3 strong SKUs</option>
+                          <option value={10}>10 — 1 SKU, strong</option>
+                          <option value={5}>5 — 1 SKU, weak</option>
+                          <option value={0}>0 — Scattered / inconsistent</option>
+                        </select>
+                      </div>
+                      <div className="field"><label className="flabel">Order Behavior (0–15)</label>
+                        <select className="fselect" value={c.scoreOrderBehavior ?? 5} onChange={e => set(`customers.${i}.scoreOrderBehavior`, num(e.target.value))}>
+                          <option value={15}>15 — Monthly / highly predictable</option>
+                          <option value={10}>10 — Quarterly consistent</option>
+                          <option value={5}>5 — Inconsistent but recurring</option>
+                          <option value={0}>0 — Random</option>
+                        </select>
+                      </div>
+                      <div className="field"><label className="flabel">Operational Simplicity (0–15)</label>
+                        <select className="fselect" value={c.scoreOpSimplicity ?? 10} onChange={e => set(`customers.${i}.scoreOpSimplicity`, num(e.target.value))}>
+                          <option value={15}>15 — Clean, low touch</option>
+                          <option value={10}>10 — Minor friction</option>
+                          <option value={5}>5 — Regular issues</option>
+                          <option value={0}>0 — Constant babysitting</option>
+                        </select>
+                      </div>
+                      <div className="field"><label className="flabel">Growth Potential (0–10)</label>
+                        <select className="fselect" value={c.scoreGrowthPotential ?? 5} onChange={e => set(`customers.${i}.scoreGrowthPotential`, num(e.target.value))}>
+                          <option value={10}>10 — Clear path to double</option>
+                          <option value={5}>5 — Moderate expansion</option>
+                          <option value={0}>0 — Flat</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                   <div className="field" style={{ marginTop: 8 }}>
@@ -2358,27 +2565,45 @@ function AdminPanel({ d, onSave, onClose }) {
                   </div>
                 </div>
               ))}
-              <button className="add-btn" onClick={() => setDraft(p => ({ ...p, customers: [...p.customers, { id: Date.now(), name: "New Customer", owners: [], tier: "B", strategy: "defend", revenue_mtd: 0, revenue_qtd: 0, revenue_ytd: 0, gp_mtd: 0, gp_qtd: 0, gp_ytd: 0, gm: 0, arOpen: 0, arPastDue: 0, avgOrderSize: 0, skus: 0, manufacturers: 1, openIssues: 0, trend: "stable", payDays: 30, operatorScore: "good_margin_low_pain", concentration: 0, tenureStartDate: new Date().toISOString().slice(0, 10), monthlySnapshots: [] }] }))}>+ Add Customer</button>
+              <button className="add-btn" onClick={() => setDraft(p => ({ ...p, customers: [...p.customers, { id: Date.now(), name: "New Customer", owners: [], tier: "B", strategy: "defend", revenue_mtd: 0, revenue_qtd: 0, revenue_ytd: 0, gp_mtd: 0, gp_qtd: 0, gp_ytd: 0, gm: 0, arOpen: 0, arPastDue: 0, avgOrderSize: 0, skus: 0, manufacturers: 1, openIssues: 0, trend: "stable", payDays: 30, operatorScore: "good_margin_low_pain", concentration: 0, tenureStartDate: new Date().toISOString().slice(0, 10), scoreSKUPower: 10, scoreOrderBehavior: 5, scoreOpSimplicity: 10, scoreGrowthPotential: 5, monthlySnapshots: [] }] }))}>+ Add Customer</button>
             </div>
           )}
 
           {tab === "guardrails" && (
             <div>
-              <div className="fsection">GM% Floors by Service</div>
+              <div className="fsection">Company</div>
+              <div className="fg2">
+                <F label="Total Employees (FTE)" path="settings.employees" />
+              </div>
+              <div className="fsection">GM% Hard Floors by Service</div>
+              <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 8 }}>Deals below these floors require approval before committing.</div>
               <div className="fg2">
                 <F label="Min GM% — Manufacturing" path="settings.guardrails.minGM_manufacturing" />
                 <F label="Min GM% — Raw Material" path="settings.guardrails.minGM_rawMaterial" />
                 <F label="Min GM% — NPD" path="settings.guardrails.minGM_npd" />
               </div>
+              <div className="fsection">Blended GM% Tiers</div>
+              <div className="fg2">
+                <F label="Blended GM% — Floor" path="settings.guardrails.gmBlendedFloor" />
+                <F label="Blended GM% — Strong" path="settings.guardrails.gmBlendedStrong" />
+                <F label="Blended GM% — Elite" path="settings.guardrails.gmBlendedElite" />
+              </div>
+              <div className="fsection">EMPE Tiers (Gross Profit / Employee)</div>
+              <div className="fg2">
+                <F label="EMPE — Floor" path="settings.guardrails.empeFloor" />
+                <F label="EMPE — Strong" path="settings.guardrails.empeStrong" />
+                <F label="EMPE — Elite" path="settings.guardrails.empeElite" />
+              </div>
+              <div className="fsection">Revenue per Employee Tiers</div>
+              <div className="fg2">
+                <F label="Revenue / Head — Floor" path="settings.guardrails.revPerHeadFloor" />
+                <F label="Revenue / Head — Strong" path="settings.guardrails.revPerHeadStrong" />
+                <F label="Revenue / Head — Elite" path="settings.guardrails.revPerHeadElite" />
+              </div>
               <div className="fsection">Account Economics</div>
               <div className="fg2">
                 <F label="Min GP$ Per Account (annual)" path="settings.guardrails.minGPPerAccount" />
                 <F label="Max Customer Concentration %" path="settings.guardrails.maxCustomerConcentration" />
-              </div>
-              <div className="fsection">Efficiency Targets</div>
-              <div className="fg2">
-                <F label="EMPE Target" path="settings.guardrails.empeTarget" />
-                <F label="Revenue per Headcount Target" path="settings.guardrails.revenuePerHeadTarget" />
               </div>
               <div className="fsection">Cash Policy</div>
               <div className="fg2">
@@ -4275,9 +4500,19 @@ export default function App() {
         // Migrate: replace fake sample manufacturers with real Nutriience manufacturers
         const fakeNames = ["PMG (Mfr B)", "NutraCo Labs", "Apex Formulations", "BioSource Inc."];
         const hasFake = saved.manufacturers?.some(m => fakeNames.includes(m.name));
-        if (hasFake) {
-          saved.manufacturers = DEFAULT_DATA.manufacturers;
+        if (hasFake) saved.manufacturers = DEFAULT_DATA.manufacturers;
+
+        // Migrate: add new tier guardrail fields if missing
+        const g = saved.settings?.guardrails;
+        if (g && !g.empeFloor) {
+          g.empeFloor = 200000; g.empeStrong = 350000; g.empeElite = 500000;
+          g.revPerHeadFloor = 1500000; g.revPerHeadStrong = 2500000; g.revPerHeadElite = 4000000;
+          g.gmBlendedFloor = 13; g.gmBlendedStrong = 16; g.gmBlendedElite = 18;
         }
+
+        // Migrate: fix employee count if still at old default of 8
+        if (saved.settings?.employees === 8) saved.settings.employees = 3;
+
         setData(saved);
       }
       setLoaded(true);
