@@ -4259,7 +4259,15 @@ export default function App() {
 
   useEffect(() => {
     loadData().then(saved => {
-      if (saved) setData(saved);
+      if (saved) {
+        // Migrate: replace fake sample manufacturers with real Nutriience manufacturers
+        const fakeNames = ["PMG (Mfr B)", "NutraCo Labs", "Apex Formulations", "BioSource Inc."];
+        const hasFake = saved.manufacturers?.some(m => fakeNames.includes(m.name));
+        if (hasFake) {
+          saved.manufacturers = DEFAULT_DATA.manufacturers;
+        }
+        setData(saved);
+      }
       setLoaded(true);
     });
   }, []);
