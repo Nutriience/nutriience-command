@@ -41,7 +41,7 @@ const DEFAULT_DATA = {
       { name: "Mari", rate: 18, drawAnnual: 0, drawPeriod: "quarterly", compType: "Reference Only", active: true },
     ],
     guardrails: {
-      minGM_manufacturing: 22, minGM_rawMaterial: 20, minGM_npd: 18,
+      minGM_manufacturing: 13, minGM_rawMaterial: 16, minGM_npd: 16,
       minGPPerAccount: 40000, maxCustomerConcentration: 30,
       empeTarget: 62000, revenuePerHeadTarget: 280000,
       cashReserveTarget: 150000, ohNoFundTarget: 75000,
@@ -953,7 +953,7 @@ function deriveAlerts(d) {
     if (traj.status === "green" && traj.trajectory === "improving" && c.tier === "A") alerts.push({ sev: "green", mod: "Customer", text: `${c.name} trending up consistently — expansion candidate` });
   });
 
-  if (totalCash < g.cashReserveTarget) alerts.push({ sev: "red", mod: "Cash", text: `Cash ${fmt(totalCash)} below reserve floor ${fmt(g.cashReserveTarget)}` });
+  if (totalCash < g.cashReserveTarget * 0.5) alerts.push({ sev: "red", mod: "Cash", text: `Cash ${fmt(totalCash)} critically low — below 50% of reserve target` }); else if (totalCash < g.cashReserveTarget) alerts.push({ sev: "yellow", mod: "Cash", text: `Cash ${fmt(totalCash)} below reserve target ${fmt(g.cashReserveTarget)} — building toward it` });
   if (arPastDue > 30000) alerts.push({ sev: "red", mod: "A/R", text: `${fmt(arPastDue)} in A/R past 31 days` });
 
   const empe = d.financials.gp.ytd / d.settings.employees;
@@ -974,7 +974,7 @@ function HomeScreen({ d, onStartReview }) {
   const alerts = deriveAlerts(d);
   const top5 = [...d.customers].sort((a, b) => b.gp_ytd - a.gp_ytd).slice(0, 5);
   const bottom5 = [...d.customers].sort((a, b) => a.gm - b.gm).slice(0, 5);
-  const cashColor = totalCash >= g.cashReserveTarget * 2 ? "green" : totalCash >= g.cashReserveTarget ? "yellow" : "red";
+  const cashColor = totalCash >= g.cashReserveTarget ? "green" : totalCash >= g.cashReserveTarget * 0.5 ? "yellow" : "red";
   const marginColor = d.financials.gm.mtd >= g.minGM_manufacturing + 2 ? "green" : d.financials.gm.mtd >= g.minGM_manufacturing ? "yellow" : "red";
   const hasRedAR = d.customers.some(c => c.arPastDue > 0);
   const maxConc = Math.max(...d.customers.map(c => c.concentration));
@@ -1479,8 +1479,8 @@ function CashCommand({ d }) {
     <div className="gap16">
       <div className="sh"><div className="sh-title">Cash Command</div><div className="sh-sub">13-week forecast · aging · distribution availability</div></div>
       <div className="g4">
-        <Tile label="Total Cash" value={fmt(totalCash)} color={totalCash >= g.cashReserveTarget ? "green" : "red"} />
-        <Tile label="Reserve Floor" value={fmt(g.cashReserveTarget)} sub={totalCash >= g.cashReserveTarget ? "Met" : "Below target"} color={totalCash >= g.cashReserveTarget ? "green" : "red"} />
+        <Tile label="Total Cash" value={fmt(totalCash)} color={totalCash >= g.cashReserveTarget ? "green" : totalCash >= g.cashReserveTarget * 0.5 ? "yellow" : "red"} />
+        <Tile label="Reserve Floor" value={fmt(g.cashReserveTarget)} sub={totalCash >= g.cashReserveTarget ? "Met" : "Building toward target"} color={totalCash >= g.cashReserveTarget ? "green" : totalCash >= g.cashReserveTarget * 0.5 ? "yellow" : "red"} />
         <Tile label="Safe to Distribute" value={fmt(safeToDistribute)} sub="After reserve + A/P + buffer" color={safeToDistribute > 0 ? "green" : "red"} />
         <Tile label="Oh-Shit Fund" value={fmt(d.cash.ohNoProgress)} sub={`Target: ${fmt(g.ohNoFundTarget)}`} color={d.cash.ohNoProgress >= g.ohNoFundTarget ? "green" : "yellow"} />
       </div>
@@ -1624,16 +1624,28 @@ function DealEvaluator({ d }) {
     const timeBurden = skus * 2 + mfrs * 4 + (form.meetingLoad === "high" ? 20 : form.meetingLoad === "medium" ? 10 : 5);
     const flags = []; let score = 0;
 
-    if (gm >= 25) score += 30; else if (gm >= floor) score += 15;
-    else { score -= 20; flags.push({ icon: "🔴", t: `GM% ${gm}% below ${floor}% floor for ${form.serviceMix}` }); }
-    if (gpDollars >= 80000) score += 25; else if (gpDollars >= g.minGPPerAccount) score += 15;
-    else { score -= 10; flags.push({ icon: "🟡", t: `GP$ ${fmt(gpDollars)} below minimum account threshold (${fmt(g.minGPPerAccount)})` }); }
+    if (gm >= 25) { score += 30; flags.push({ icon: "🟢", t: `GM% ${gm}% is strong — above 25% threshold` }); }
+    else if (gm >= floor) { score += 15; flags.push({ icon: "🟡", t: `GM% ${gm}% meets floor (${floor}%) but has room to improve` }); }
+    else { score -= 20; flags.push({ icon: "🔴", t: `GM% ${gm}% below ${floor}% floor for ${form.serviceMix} — must renegotiate` }); }
+
+    if (gpDollars >= 80000) { score += 25; flags.push({ icon: "🟢", t: `GP$ ${fmt(gpDollars)} is strong — above $80K threshold` }); }
+    else if (gpDollars >= g.minGPPerAccount) { score += 15; flags.push({ icon: "🟡", t: `GP$ ${fmt(gpDollars)} meets minimum but below $80K target` }); }
+    else { score -= 10; flags.push({ icon: "🔴", t: `GP$ ${fmt(gpDollars)} below minimum account threshold (${fmt(g.minGPPerAccount)})` }); }
+
     if (skus > 20) { score -= 15; flags.push({ icon: "🟡", t: `${skus} SKUs creates operational complexity` }); }
     if (mfrs > 3) { score -= 10; flags.push({ icon: "🟡", t: `${mfrs} manufacturers per account increases coordination burden` }); }
-    if (form.paymentTerms === "net60" || form.paymentTerms === "net90") { score -= 15; flags.push({ icon: "🔴", t: `${form.paymentTerms.toUpperCase()} payment terms create cash drag` }); }
-    if (form.meetingLoad === "high") { score -= 10; flags.push({ icon: "🟡", t: "High meeting load dilutes EMPE" }); }
-    if (form.strategicUpside === "high") score += 15;
-    if (form.npdTie === "yes") score += 10;
+
+    if (form.paymentTerms === "net60" || form.paymentTerms === "net90") { score -= 15; flags.push({ icon: "🔴", t: `${form.paymentTerms.toUpperCase()} payment terms create cash drag — push for Net 30` }); }
+    else if (form.paymentTerms === "net15") { flags.push({ icon: "🟢", t: "Net 15 payment terms — excellent cash position" }); }
+    else if (form.paymentTerms === "net30") { flags.push({ icon: "🟢", t: "Net 30 payment terms — standard and acceptable" }); }
+
+    if (form.meetingLoad === "high") { score -= 10; flags.push({ icon: "🟡", t: "High meeting load dilutes EMPE — factor into pricing" }); }
+    else if (form.meetingLoad === "low") { flags.push({ icon: "🟢", t: "Low support load — efficient use of team capacity" }); }
+
+    if (form.strategicUpside === "high") { score += 15; flags.push({ icon: "🟢", t: "High strategic upside — anchor or platform account potential" }); }
+    else if (form.strategicUpside === "low") { flags.push({ icon: "🟡", t: "Low strategic upside — purely transactional relationship" }); }
+
+    if (form.npdTie === "yes") { score += 10; flags.push({ icon: "🟢", t: "NPD tie-in adds stickiness and margin expansion potential" }); }
 
     const tier = gpDollars >= 120000 ? "A" : gpDollars >= 60000 ? "B" : "C";
     const verdict = score >= 40 ? "take" : score >= 20 ? "renegotiate" : "decline";
