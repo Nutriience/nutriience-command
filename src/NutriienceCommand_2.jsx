@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── PIN CONFIG ──────────────────────────────────────────────────────────────
 // Change this to your preferred 4-digit PIN
-const APP_PIN = "7493";
+const APP_PIN = "1234";
 const PIN_SESSION_KEY = "nutriience_pin_session";
 
 // ─── PERSISTENT STORAGE ─────────────────────────────────────────────────────
@@ -1610,6 +1610,19 @@ function GuardrailsTab({ d }) {
 }
 
 // ─── MODULE: DEAL EVALUATOR ───────────────────────────────────────────────────
+const DealField = ({ label, name, placeholder, form, set }) => (
+  <div className="field"><label className="flabel">{label}</label>
+    <input className="finput" type="number" value={form[name]} onChange={e => set(name, e.target.value)} placeholder={placeholder} />
+  </div>
+);
+const DealSelect = ({ label, name, options, form, set }) => (
+  <div className="field"><label className="flabel">{label}</label>
+    <select className="fselect" value={form[name]} onChange={e => set(name, e.target.value)}>
+      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+    </select>
+  </div>
+);
+
 function DealEvaluator({ d }) {
   const g = d.settings.guardrails;
   const [form, setForm] = useState({ revenue: "", gm: "", serviceMix: "manufacturing", skus: "", manufacturers: "", meetingLoad: "low", paymentTerms: "net30", strategicUpside: "medium", npdTie: "no" });
@@ -1641,17 +1654,11 @@ function DealEvaluator({ d }) {
     setResult({ gpDollars, timeBurden, tier, verdict, flags, score, recommendedFloor, gm, floor });
   };
 
-  const Field = ({ label, name, type = "number", placeholder }) => (
-    <div className="field"><label className="flabel">{label}</label>
-      <input className="finput" type={type} value={form[name]} onChange={e => set(name, e.target.value)} placeholder={placeholder} />
-    </div>
+  const Field = ({ label, name, placeholder }) => (
+    <DealField label={label} name={name} placeholder={placeholder} form={form} set={set} />
   );
   const Select = ({ label, name, options }) => (
-    <div className="field"><label className="flabel">{label}</label>
-      <select className="fselect" value={form[name]} onChange={e => set(name, e.target.value)}>
-        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-      </select>
-    </div>
+    <DealSelect label={label} name={name} options={options} form={form} set={set} />
   );
 
   return (
