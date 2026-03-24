@@ -1610,19 +1610,6 @@ function GuardrailsTab({ d }) {
 }
 
 // ─── MODULE: DEAL EVALUATOR ───────────────────────────────────────────────────
-const DealField = ({ label, name, placeholder, form, set }) => (
-  <div className="field"><label className="flabel">{label}</label>
-    <input className="finput" type="number" value={form[name]} onChange={e => set(name, e.target.value)} placeholder={placeholder} />
-  </div>
-);
-const DealSelect = ({ label, name, options, form, set }) => (
-  <div className="field"><label className="flabel">{label}</label>
-    <select className="fselect" value={form[name]} onChange={e => set(name, e.target.value)}>
-      {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-    </select>
-  </div>
-);
-
 function DealEvaluator({ d }) {
   const g = d.settings.guardrails;
   const [form, setForm] = useState({ revenue: "", gm: "", serviceMix: "manufacturing", skus: "", manufacturers: "", meetingLoad: "low", paymentTerms: "net30", strategicUpside: "medium", npdTie: "no" });
@@ -1654,28 +1641,21 @@ function DealEvaluator({ d }) {
     setResult({ gpDollars, timeBurden, tier, verdict, flags, score, recommendedFloor, gm, floor });
   };
 
-  const Field = ({ label, name, placeholder }) => (
-    <DealField label={label} name={name} placeholder={placeholder} form={form} set={set} />
-  );
-  const Select = ({ label, name, options }) => (
-    <DealSelect label={label} name={name} options={options} form={form} set={set} />
-  );
-
   return (
     <div className="gap16">
       <div className="sh"><div className="sh-title">Deal Evaluator</div><div className="sh-sub">Score any new account or program before committing</div></div>
       <div className="card">
         <div className="card-title">Deal Parameters</div>
         <div className="fg2">
-          <Field label="Estimated Annual Revenue" name="revenue" placeholder="e.g. 250000" />
-          <Field label="Estimated GM%" name="gm" placeholder="e.g. 24" />
-          <Select label="Primary Service Type" name="serviceMix" options={[["manufacturing", "Manufacturing Management"], ["raw", "Raw Material Supply"], ["npd", "NPD / Projects"]]} />
-          <Field label="Number of SKUs" name="skus" placeholder="e.g. 8" />
-          <Field label="Number of Manufacturers" name="manufacturers" placeholder="e.g. 2" />
-          <Select label="Meeting / Support Load" name="meetingLoad" options={[["low", "Low"], ["medium", "Medium"], ["high", "High"]]} />
-          <Select label="Payment Terms" name="paymentTerms" options={[["net15", "Net 15"], ["net30", "Net 30"], ["net45", "Net 45"], ["net60", "Net 60"], ["net90", "Net 90"]]} />
-          <Select label="Strategic Upside" name="strategicUpside" options={[["low", "Low"], ["medium", "Medium"], ["high", "High — anchor / platform account"]]} />
-          <Select label="NPD Tie-in?" name="npdTie" options={[["no", "No"], ["yes", "Yes — tied to account growth"]]} />
+          <div className="field"><label className="flabel">Estimated Annual Revenue</label><input className="finput" type="number" placeholder="e.g. 250000" value={form.revenue} onChange={e => set("revenue", e.target.value)} /></div>
+          <div className="field"><label className="flabel">Estimated GM%</label><input className="finput" type="number" placeholder="e.g. 24" value={form.gm} onChange={e => set("gm", e.target.value)} /></div>
+          <div className="field"><label className="flabel">Primary Service Type</label><select className="fselect" value={form.serviceMix} onChange={e => set("serviceMix", e.target.value)}><option value="manufacturing">Manufacturing Management</option><option value="raw">Raw Material Supply</option><option value="npd">NPD / Projects</option></select></div>
+          <div className="field"><label className="flabel">Number of SKUs</label><input className="finput" type="number" placeholder="e.g. 8" value={form.skus} onChange={e => set("skus", e.target.value)} /></div>
+          <div className="field"><label className="flabel">Number of Manufacturers</label><input className="finput" type="number" placeholder="e.g. 2" value={form.manufacturers} onChange={e => set("manufacturers", e.target.value)} /></div>
+          <div className="field"><label className="flabel">Meeting / Support Load</label><select className="fselect" value={form.meetingLoad} onChange={e => set("meetingLoad", e.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+          <div className="field"><label className="flabel">Payment Terms</label><select className="fselect" value={form.paymentTerms} onChange={e => set("paymentTerms", e.target.value)}><option value="net15">Net 15</option><option value="net30">Net 30</option><option value="net45">Net 45</option><option value="net60">Net 60</option><option value="net90">Net 90</option></select></div>
+          <div className="field"><label className="flabel">Strategic Upside</label><select className="fselect" value={form.strategicUpside} onChange={e => set("strategicUpside", e.target.value)}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High — anchor / platform account</option></select></div>
+          <div className="field"><label className="flabel">NPD Tie-in?</label><select className="fselect" value={form.npdTie} onChange={e => set("npdTie", e.target.value)}><option value="no">No</option><option value="yes">Yes — tied to account growth</option></select></div>
         </div>
         <button className="eval-btn" onClick={evaluate}>Evaluate Deal</button>
       </div>
