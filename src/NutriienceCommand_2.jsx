@@ -207,42 +207,12 @@ const DEFAULT_DATA = {
     { id: 4, name: "VitaCore Plus", revenue: 180000, gm: 31.0, serviceType: "npd", stage: "verbal", probability: 85, expectedCloseMonth: "2026-03", owner: "Gina", dealScore: null, verdict: null, notes: "Ready to close" },
   ],
   manufacturers: [
-    { id: 1, name: "PMG (Mfr B)", tier: "B", status: "active", lateShipments: 2, openNCRs: 1, onTimeRate: 74, qualityScore: 78, activeCustomers: ["Alpine Nutrition", "Peak Performance Co."], openIssues: 2, concentration: 34, tenureStartDate: "2022-06-01",
-      monthlySnapshots: [
-        { month: "2024-10", onTimeRate: 88, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2024-11", onTimeRate: 82, openNCRs: 1, lateShipments: 1, openIssues: 1, healthStatus: "yellow" },
-        { month: "2024-12", onTimeRate: 79, openNCRs: 1, lateShipments: 1, openIssues: 1, healthStatus: "yellow" },
-        { month: "2025-01", onTimeRate: 76, openNCRs: 1, lateShipments: 2, openIssues: 2, healthStatus: "yellow" },
-        { month: "2025-02", onTimeRate: 74, openNCRs: 1, lateShipments: 2, openIssues: 2, healthStatus: "red" },
-      ],
-    },
-    { id: 2, name: "NutraCo Labs", tier: "A", status: "active", lateShipments: 0, openNCRs: 0, onTimeRate: 96, qualityScore: 94, activeCustomers: ["Vitacore Labs", "ProHealth Direct"], openIssues: 0, concentration: 28, tenureStartDate: "2021-03-01",
-      monthlySnapshots: [
-        { month: "2024-10", onTimeRate: 97, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2024-11", onTimeRate: 96, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2024-12", onTimeRate: 95, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2025-01", onTimeRate: 97, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2025-02", onTimeRate: 96, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-      ],
-    },
-    { id: 3, name: "Apex Formulations", tier: "B", status: "active", lateShipments: 1, openNCRs: 2, onTimeRate: 81, qualityScore: 83, activeCustomers: ["NutriFirst", "Blueprint Wellness"], openIssues: 3, concentration: 22, tenureStartDate: "2023-01-01",
-      monthlySnapshots: [
-        { month: "2024-10", onTimeRate: 88, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2024-11", onTimeRate: 85, openNCRs: 1, lateShipments: 1, openIssues: 1, healthStatus: "yellow" },
-        { month: "2024-12", onTimeRate: 83, openNCRs: 2, lateShipments: 1, openIssues: 2, healthStatus: "yellow" },
-        { month: "2025-01", onTimeRate: 82, openNCRs: 2, lateShipments: 1, openIssues: 3, healthStatus: "yellow" },
-        { month: "2025-02", onTimeRate: 81, openNCRs: 2, lateShipments: 1, openIssues: 3, healthStatus: "yellow" },
-      ],
-    },
-    { id: 4, name: "BioSource Inc.", tier: "A", status: "active", lateShipments: 0, openNCRs: 0, onTimeRate: 98, qualityScore: 97, activeCustomers: ["Alpine Nutrition", "Vitacore Labs", "Peak Performance Co."], openIssues: 0, concentration: 16, tenureStartDate: "2020-09-01",
-      monthlySnapshots: [
-        { month: "2024-10", onTimeRate: 99, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2024-11", onTimeRate: 98, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2024-12", onTimeRate: 98, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2025-01", onTimeRate: 97, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-        { month: "2025-02", onTimeRate: 98, openNCRs: 0, lateShipments: 0, openIssues: 0, healthStatus: "green" },
-      ],
-    },
+    { id: 1, name: "Arnet Pharmaceutical Corp.", tier: "A", status: "active", lateShipments: 0, openNCRs: 0, onTimeRate: 90, qualityScore: 90, activeCustomers: ["Fact Products", "Pinch Inc.", "Little Koala & Co LLC, dba Little Koala"], openIssues: 0, concentration: 45, tenureStartDate: "2023-01-01", notes: "", monthlySnapshots: [] },
+    { id: 2, name: "SDS, LLC", tier: "A", status: "active", lateShipments: 0, openNCRs: 0, onTimeRate: 90, qualityScore: 90, activeCustomers: ["Continuance LLC, dba Blueprint Bryan Johnson"], openIssues: 0, concentration: 25, tenureStartDate: "2024-01-01", notes: "", monthlySnapshots: [] },
+    { id: 3, name: "Adept", tier: "B", status: "active", lateShipments: 0, openNCRs: 0, onTimeRate: 90, qualityScore: 90, activeCustomers: ["Continuance LLC, dba Blueprint Bryan Johnson", "Back Bend Labs, LLC"], openIssues: 0, concentration: 20, tenureStartDate: "2024-01-01", notes: "", monthlySnapshots: [] },
+    { id: 4, name: "ACB", tier: "B", status: "active", lateShipments: 0, openNCRs: 0, onTimeRate: 90, qualityScore: 90, activeCustomers: ["Continuance LLC, dba Blueprint Bryan Johnson"], openIssues: 0, concentration: 10, tenureStartDate: "2024-01-01", notes: "", monthlySnapshots: [] },
+    { id: 5, name: "VitaWorks West", tier: "B", status: "pipeline", lateShipments: 0, openNCRs: 0, onTimeRate: 0, qualityScore: 0, activeCustomers: [], openIssues: 0, concentration: 0, tenureStartDate: "", notes: "Potential future manufacturer. Currently a raw materials customer.", monthlySnapshots: [] },
+    { id: 6, name: "Precision Nutra", tier: "B", status: "pipeline", lateShipments: 0, openNCRs: 0, onTimeRate: 0, qualityScore: 0, activeCustomers: [], openIssues: 0, concentration: 0, tenureStartDate: "", notes: "Under evaluation.", monthlySnapshots: [] },
   ],
 };
 
@@ -2195,7 +2165,7 @@ function AdminPanel({ d, onSave, onClose }) {
     );
   };
 
-  const adminTabs = ["financials", "cash / ar", "customers", "guardrails", "forecast", "issues / leaks"];
+  const adminTabs = ["financials", "cash / ar", "customers", "manufacturers", "guardrails", "forecast", "issues / leaks"];
 
   return (
     <div className="admin-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -2433,6 +2403,53 @@ function AdminPanel({ d, onSave, onClose }) {
                   <F label={`${w.week} — Outflows`} path={`cashForecast.${i}.outflows`} />
                 </div>
               ))}
+            </div>
+          )}
+
+          {tab === "manufacturers" && (
+            <div>
+              <div className="fsection">Manufacturers</div>
+              {draft.manufacturers.map((m, i) => (
+                <div key={m.id} style={{ marginBottom: 16, padding: 12, background: "var(--surface2)", borderRadius: 8, border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{m.name}</span>
+                    <button className="remove-btn" onClick={() => setDraft(p => ({ ...p, manufacturers: p.manufacturers.filter((_, j) => j !== i) }))}>✕</button>
+                  </div>
+                  <div className="fg2">
+                    <F label="Name" path={`manufacturers.${i}.name`} />
+                    <div className="field"><label className="flabel">Status</label>
+                      <select className="fselect" value={m.status} onChange={e => set(`manufacturers.${i}.status`, e.target.value)}>
+                        <option value="active">Active</option>
+                        <option value="pipeline">Pipeline</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
+                    <div className="field"><label className="flabel">Tier</label>
+                      <select className="fselect" value={m.tier} onChange={e => set(`manufacturers.${i}.tier`, e.target.value)}>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                      </select>
+                    </div>
+                    <F label="On-Time Rate %" path={`manufacturers.${i}.onTimeRate`} />
+                    <F label="Quality Score" path={`manufacturers.${i}.qualityScore`} />
+                    <F label="Late Shipments" path={`manufacturers.${i}.lateShipments`} />
+                    <F label="Open NCRs" path={`manufacturers.${i}.openNCRs`} />
+                    <F label="Open Issues" path={`manufacturers.${i}.openIssues`} />
+                    <F label="Concentration %" path={`manufacturers.${i}.concentration`} />
+                    <F label="Tenure Start (YYYY-MM-DD)" path={`manufacturers.${i}.tenureStartDate`} />
+                  </div>
+                  <div className="field" style={{ marginTop: 8 }}>
+                    <label className="flabel">Active Customers (comma separated)</label>
+                    <input className="finput" defaultValue={(m.activeCustomers || []).join(", ")} onBlur={e => set(`manufacturers.${i}.activeCustomers`, e.target.value.split(",").map(s => s.trim()).filter(Boolean))} />
+                  </div>
+                  <div className="field" style={{ marginTop: 8 }}>
+                    <label className="flabel">Notes</label>
+                    <input className="finput" defaultValue={m.notes || ""} onBlur={e => set(`manufacturers.${i}.notes`, e.target.value)} />
+                  </div>
+                </div>
+              ))}
+              <button className="add-btn" onClick={() => setDraft(p => ({ ...p, manufacturers: [...p.manufacturers, { id: Date.now(), name: "New Manufacturer", tier: "B", status: "active", lateShipments: 0, openNCRs: 0, onTimeRate: 90, qualityScore: 90, activeCustomers: [], openIssues: 0, concentration: 0, tenureStartDate: "", notes: "", monthlySnapshots: [] }] }))}>+ Add Manufacturer</button>
             </div>
           )}
 
